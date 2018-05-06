@@ -1,0 +1,259 @@
+set_source_files_properties(
+    daemon_v3.cpp
+    PROPERTIES
+    COMPILE_FLAGS
+    "-Wno-missing-declarations"
+)
+
+set_source_files_properties(
+    packages.cpp
+    PROPERTIES
+    COMPILE_FLAGS
+    "-Wno-format-nonliteral"
+)
+
+set_source_files_properties(
+    sepolpatch.cpp
+    PROPERTIES
+    COMPILE_FLAGS
+    "-Wno-keyword-macro"
+)
+
+set_source_files_properties(
+    auditd.cpp
+    miniadbd.cpp
+    PROPERTIES
+    COMPILE_FLAGS
+    "-Wno-gnu-statement-expression -Wno-zero-length-array"
+)
+
+set_source_files_properties(
+    external/audit/libaudit.cpp
+    PROPERTIES
+    COMPILE_FLAGS
+    "-Wno-cast-align -Wno-conversion -Wno-gnu-statement-expression -Wno-old-style-cast -Wno-shorten-64-to-32 -Wno-sign-conversion"
+)
+
+set_source_files_properties(
+    external/legacy_property_service.cpp
+    PROPERTIES
+    COMPILE_FLAGS
+    "-Wno-cast-align -Wno-missing-prototypes -Wno-missing-variable-declarations -Wno-old-style-cast -Wno-shorten-64-to-32 -Wno-sign-conversion"
+)
+
+set_source_files_properties(
+    external/property_service.cpp
+    PROPERTIES
+    COMPILE_FLAGS
+    "-Wno-gnu-statement-expression -Wno-missing-prototypes -Wno-old-style-cast -Wno-shorten-64-to-32 -Wno-sign-conversion"
+)
+
+set_source_files_properties(
+    initwrapper/cutils/uevent.cpp
+    PROPERTIES
+    COMPILE_FLAGS
+    "-Wno-cast-align -Wno-old-style-cast -Wno-sign-conversion"
+)
+
+set_source_files_properties(
+    initwrapper/devices.cpp
+    PROPERTIES
+    COMPILE_FLAGS
+    "-Wno-missing-prototypes -Wno-shorten-64-to-32 -Wno-sign-conversion"
+)
+
+set_source_files_properties(
+    ${CMAKE_SOURCE_DIR}/external/pugixml/src/pugixml.cpp
+    PROPERTIES
+    COMPILE_FLAGS
+    "-Wno-double-promotion -Wno-sign-conversion"
+)
+
+if(${MBP_BUILD_TARGET} STREQUAL android-system)
+    # Generate validcerts.cpp
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/validcerts.cpp.in
+        ${CMAKE_CURRENT_BINARY_DIR}/gen/validcerts.cpp
+    )
+
+    add_library(
+        miniadbd-static
+        STATIC
+        miniadbd/adb.cpp
+        miniadbd/adb_io.cpp
+        miniadbd/adb_log.cpp
+        miniadbd/adb_utils.cpp
+        miniadbd/fdevent.cpp
+        miniadbd/file_sync_service.cpp
+        miniadbd/services.cpp
+        miniadbd/sockets.cpp
+        miniadbd/transport.cpp
+        miniadbd/transport_usb.cpp
+        miniadbd/usb_linux_client.cpp
+    )
+    add_executable(
+        mbtool
+        appsync.cpp
+        appsyncmanager.cpp
+        auditd.cpp
+        daemon.cpp
+        daemon_v3.cpp
+        emergency.cpp
+        init.cpp
+        main.cpp
+        miniadbd.cpp
+        mount_fstab.cpp
+        multiboot.cpp
+        packages.cpp
+        properties.cpp
+        reboot.cpp
+        romconfig.cpp
+        roms.cpp
+        sepolpatch.cpp
+        signature.cpp
+        switcher.cpp
+        uevent_dump.cpp
+        wipe.cpp
+        external/legacy_property_service.cpp
+        external/audit/libaudit.cpp
+        external/property_service.cpp
+        initwrapper/cutils/uevent.cpp
+        initwrapper/devices.cpp
+        initwrapper/util.cpp
+        ${CMAKE_CURRENT_BINARY_DIR}/gen/validcerts.cpp
+        ${CMAKE_SOURCE_DIR}/external/pugixml/src/pugixml.cpp
+    )
+    add_executable(
+        mbtool_recovery
+        archive_util.cpp
+        backup.cpp
+        bootimg_util.cpp
+        image.cpp
+        installer.cpp
+        installer_util.cpp
+        main.cpp
+        multiboot.cpp
+        ramdisk_patcher.cpp
+        rom_installer.cpp
+        romconfig.cpp
+        roms.cpp
+        sepolpatch.cpp
+        signature.cpp
+        switcher.cpp
+        update_binary.cpp
+        update_binary_tool.cpp
+        utilities.cpp
+        wipe.cpp
+        external/legacy_property_service.cpp
+        ${CMAKE_CURRENT_BINARY_DIR}/gen/validcerts.cpp
+    )
+
+    foreach(target mbtool mbtool_recovery)
+        # Includes
+        target_include_directories(
+            ${target}
+            PRIVATE
+            .
+            ${CMAKE_SOURCE_DIR}/external/flatbuffers/include
+            ${CMAKE_SOURCE_DIR}/external/minizip/src
+            ${CMAKE_SOURCE_DIR}/external/pugixml/src
+            ${CMAKE_CURRENT_SOURCE_DIR}/external/linux-api-headers
+        )
+
+        # Disable some pugixml features
+        target_compile_definitions(
+            ${target}
+            PRIVATE
+            -DPUGIXML_NO_EXCEPTIONS
+            -DPUGIXML_NO_STL
+            -DPUGIXML_NO_XPATH
+        )
+    endforeach()
+
+    target_compile_definitions(
+        mbtool_recovery
+        PRIVATE
+        -DRECOVERY
+    )
+
+    # miniadbd includes
+    target_include_directories(
+        miniadbd-static
+        PRIVATE
+        .
+    )
+
+    # Ugly, but I don't want to deviate too much from upstream to fix it
+    target_compile_options(
+        miniadbd-static
+        PRIVATE
+        -Wno-conditional-uninitialized
+        -Wno-conversion
+        -Wno-gnu-statement-expression
+        -Wno-missing-field-initializers
+        -Wno-missing-noreturn
+        -Wno-missing-prototypes
+        -Wno-missing-variable-declarations
+        -Wno-old-style-cast
+        -Wno-pedantic
+        -Wno-shadow
+        -Wno-shorten-64-to-32
+        -Wno-sign-conversion
+        -Wno-unreachable-code-return
+        -Wno-unused-parameter
+    )
+
+    set_target_properties(
+        mbtool mbtool_recovery
+        PROPERTIES
+        LINK_FLAGS "-static"
+        LINK_SEARCH_START_STATIC ON
+    )
+
+    android_link_allow_multiple_definitions(mbtool mbtool_recovery)
+
+    target_link_libraries(
+        miniadbd-static
+        PRIVATE
+        interface.global.CXXVersion
+        mblog-static
+        mbutil-static
+    )
+    target_link_libraries(
+        mbtool
+        PRIVATE
+        interface.global.CXXVersion
+        miniadbd-static
+        mbutil-static
+        mbsign-static
+        mbdevice-static
+        mblog-static
+        mbbootimg-static
+        mbcommon-static
+        libminizip
+        rapidjson
+        Procps::Procps
+    )
+    target_link_libraries(
+        mbtool_recovery
+        PRIVATE
+        interface.global.CXXVersion
+        miniadbd-static
+        mbutil-static
+        mbsign-static
+        mblog-static
+        mbdevice-static
+        mbbootimg-static
+        mbcommon-static
+        libminizip
+        rapidjson
+        LibArchive::LibArchive
+        Procps::Procps # TODO
+    )
+
+    install(
+        TARGETS mbtool mbtool_recovery
+        RUNTIME DESTINATION "${BIN_INSTALL_DIR}/"
+        COMPONENT Applications
+    )
+endif()

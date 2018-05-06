@@ -1,0 +1,18 @@
+namespace mbtool.daemon.v3;
+
+table MbRom {
+    id : string;
+    system_path : string;
+    cache_path : string;
+    data_path : string;
+    version : string;
+    build : string;
+}
+
+table MbGetInstalledRomsRequest {
+    // No parameters
+}
+
+table MbGetInstalledRomsResponse {
+    roms : [MbRom];
+}

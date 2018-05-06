@@ -1,0 +1,60 @@
+# Copyright (C) 2014-2017  Andrew Gunnerson <andrewgunnerson@gmail.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+pkgname=liblzma
+pkgver=5.2.3
+pkgrel=2
+pkgdesc="Library for XZ and LZMA compressed files"
+arch=(armv7 aarch64 x86 x86_64)
+url="http://tukaani.org/xz/"
+license=(LGPL)
+validpgpkeys=('3690C240CE51B4670D30AD1C38EE757D69184620')
+source=("http://tukaani.org/xz/xz-${pkgver}.tar.xz"
+        "http://tukaani.org/xz/xz-${pkgver}.tar.xz.sig"
+        0001-Android-build-system.patch)
+sha512sums=('a5b8f3c402ec3df5c1875a32081136606dd7701190d8b8091bae1bac36553ebe3480985c8069bf5d9e24f374ea64b1fe22614d3eebac1c10e5d609701bceca95'
+            'SKIP'
+            'cd93e6b8ced4fb57170169b40ae43316421c6fb371575345c82945e01c2ecf743af07bcc52edc4eaec4714e8aefce56050bb354079ca3ac763c7763a4dad141b')
+
+prepare() {
+    cd "xz-${pkgver}"
+    patch -p1 -i ../0001-Android-build-system.patch
+}
+
+build() {
+    cd "xz-${pkgver}"
+
+    local abi
+    abi=$(android_get_abi_name)
+
+    ndk-build \
+        NDK_PROJECT_PATH=. \
+        NDK_TOOLCHAIN_VERSION=clang \
+        APP_BUILD_SCRIPT=Android.mk \
+        APP_ABI="${abi}" \
+        APP_PLATFORM=android-17 \
+        "${MAKEFLAGS}"
+}
+
+package() {
+    cd "xz-${pkgver}"
+
+    local abi
+    abi=$(android_get_abi_name)
+
+    install -dm755 "${pkgdir}"/{lib,include}/
+    cp -a src/liblzma/api/{lzma.h,lzma} "${pkgdir}"/include/
+    install -m644 "obj/local/${abi}/liblzma.a" "${pkgdir}"/lib/
+}

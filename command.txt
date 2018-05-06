@@ -1,0 +1,2 @@
+cmake .. -DMBP_BUILD_TARGET=android -DMBP_BUILD_TYPE=release -DMBP_SIGN_CONFIG_PATH=../cmake/SigningConfig.prop.in
+make -j16 && rm -rf assets && cpack && make apk
